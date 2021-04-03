@@ -1,0 +1,98 @@
+//obracamo se elementu koja ima id uvjet
+//source i minLength su svojstva autocompleta
+$('#uvjet').autocomplete({
+    //autocomplete prima parametar source, funkciju koja prima dva parametra request i response
+    source: function(req,res){
+        //ajax upit
+        $.ajax({
+        //trazimo polaznike
+        url:'/polaznik/trazipolaznike',
+        //saljemo podatke
+        data:{
+            uvjet: req.term,
+            grupa: 'grupa'
+        },
+        //ako je uspjesno izvest ce se funkcija koja prima odgovor od strane servera(json)
+        success: function(odgovor){
+            //ona ce pozvat response kojem ce poslati odgovor
+            res(odgovor);                       
+        }
+    });
+    },
+    //nakon 2 slova izbacuje rezultat na serveru
+    minLength: 2,
+    //sto se dogada kada covjek iz liste odabere neku stavku
+    select: function(dogadaj,ui){
+        spremi('grupa',ui.item);
+    }
+    //dobije ul u kojem kreira list item u njega stavi ime i to ime zavrsi u unordered list
+}).autocomplete('instance')._renderItem=function(ul,polaznik){
+    return $('<li>'). append('<div>' + polaznik.ime + ' ' + polaznik.prezime + 
+    '</div>'). appendTo(ul);
+};
+
+function spremi(grupa,polaznik){
+    //console.log('grupa:' + grupa);
+    //console.log('polaznik:' + polaznik.sifra);
+    $.ajax({
+        //moramo definirati post jer ce u suprotnom ici na get metodu
+        type: 'POST',
+        //trazimo polaznike
+        url:'/grupa/dodajpolaznika',
+        //saljemo podatke
+        data:{
+            polaznik: polaznik.sifra,
+            grupa: grupa
+        },
+        //ako je uspjesno izvest ce se funkcija koja prima odgovor od strane servera(json)
+        success: function(odgovor){
+            if(odgovor==='OK'){
+                $('#polaznici').append('<tr>'+
+                '<td>'+ polaznik.ime + ' ' + polaznik.prezime +'</td>'+
+                '<td>'+
+                '<a class="brisanje" href="#" id="p_' + polaznik.sifra +'">'+
+                        '<i title="brisanje" style="color: red" class="fas fa-trash-alt" aria-hidden="true"></i><span class="sr-only">brisanje</span>'+
+                        '</a>'+
+                '</td>'+
+                '</tr>');
+                definirajBrisanje();//pozivamo ovu funkciju kako bi mogli obrisati naknadno dodanog polaznika
+            }else{
+                alert(odgovor);
+            }
+        }
+    });
+
+}
+
+
+function definirajBrisanje(){
+
+    //na svaki element koji ima klasu brisanje, kada se dogodi klik izvest ce se sljedeca funkcija
+$('.brisanje').click(function(){
+    let element=$(this);
+    //ako zelimo dohvatiti sifru od polaznika
+    let sifra = element.attr('id'). split('_')[1];
+    //console.log('grupa:' + grupa);
+    //console.log('polaznik:' + sifra);
+    $.ajax({
+        type: 'POST',
+        url:'/grupa/obrisipolaznika',
+        data:{
+            polaznik: sifra,
+            grupa: grupa
+        },
+        success: function(odgovor){ 
+            if(odgovor==='OK'){//ako je odgovor 'OK'
+                //želimo obrisati red,element je 'a', parent je 'tr table row'
+                element.parent().parent().remove(); 
+            }else{
+                alert(odgovor);
+            }  
+                                
+        }
+    });
+    return false;//da nas ne vrati na početak stranice
+});
+
+}
+definirajBrisanje();//pozivamo ovu funkciju kako bi mogli obrisati naknadno dodanog polaznika
